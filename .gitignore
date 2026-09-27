@@ -1,0 +1,45 @@
+# Secrets — NEVER commit these
+.env
+*.pem
+*.key
+credentials.json
+token.json
+google-credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Node / React
+node_modules/
+dist/
+.vite/
+*.local
+
+# Docker volumes (local only)
+data/
+postgres-data/
+grafana-data/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/

@@ -1,0 +1,110 @@
+{
+  "uid": "intake-cop-main",
+  "title": "AI Intake Cop — Analytics",
+  "tags": ["workshop", "helicone", "llm"],
+  "timezone": "browser",
+  "refresh": "10s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total LLM Requests",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+      "targets": [{
+        "expr": "sum(intake_requests_total)",
+        "refId": "A"
+      }],
+      "options": {"colorMode": "background", "textMode": "auto"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"},
+        "thresholds": {"steps": [{"color": "green", "value": 0}]}}}
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Guardrail Blocks",
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+      "targets": [{
+        "expr": "sum(guardrail_blocks_total)",
+        "refId": "A"
+      }],
+      "options": {"colorMode": "background"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"},
+        "thresholds": {"steps": [{"color": "green", "value": 0}, {"color": "orange", "value": 5}, {"color": "red", "value": 20}]}}}
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Token Usage",
+      "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+      "targets": [{
+        "expr": "sum(token_usage_total)",
+        "refId": "A"
+      }],
+      "options": {"colorMode": "background"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"},
+        "thresholds": {"steps": [{"color": "blue", "value": 0}]}}}
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Budget Utilization %",
+      "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+      "targets": [{
+        "expr": "budget_utilization_pct",
+        "refId": "A"
+      }],
+      "options": {"colorMode": "background"},
+      "fieldConfig": {"defaults": {"unit": "percent", "color": {"mode": "thresholds"},
+        "thresholds": {"steps": [{"color": "green", "value": 0}, {"color": "orange", "value": 50}, {"color": "red", "value": 80}]}}}
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "LLM Response Latency (p95)",
+      "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+      "targets": [{
+        "expr": "histogram_quantile(0.95, rate(llm_response_seconds_bucket[1m]))",
+        "legendFormat": "p95 latency",
+        "refId": "A"
+      }],
+      "fieldConfig": {"defaults": {"unit": "s", "color": {"mode": "palette-classic"}}}
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Requests by Priority",
+      "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "sum(rate(intake_requests_total{priority='HIGH'}[1m]))", "legendFormat": "HIGH", "refId": "A"},
+        {"expr": "sum(rate(intake_requests_total{priority='MEDIUM'}[1m]))", "legendFormat": "MEDIUM", "refId": "B"},
+        {"expr": "sum(rate(intake_requests_total{priority='LOW'}[1m]))", "legendFormat": "LOW", "refId": "C"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "id": 7,
+      "type": "bargauge",
+      "title": "Active Background Tasks",
+      "gridPos": {"x": 0, "y": 12, "w": 8, "h": 4},
+      "targets": [{"expr": "active_background_tasks", "refId": "A"}],
+      "options": {"displayMode": "gradient", "orientation": "horizontal"},
+      "fieldConfig": {"defaults": {"thresholds": {"steps": [{"color": "green", "value": 0}, {"color": "orange", "value": 5}, {"color": "red", "value": 10}]}}}
+    },
+    {
+      "id": 8,
+      "type": "piechart",
+      "title": "Guardrail Blocks by Type",
+      "gridPos": {"x": 8, "y": 12, "w": 8, "h": 8},
+      "targets": [{"expr": "sum by(guardrail_type) (guardrail_blocks_total)", "legendFormat": "{{guardrail_type}}", "refId": "A"}]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Token Usage by Model",
+      "gridPos": {"x": 16, "y": 12, "w": 8, "h": 8},
+      "targets": [{"expr": "sum by(model, type) (token_usage_total)", "legendFormat": "{{model}} / {{type}}", "refId": "A", "instant": true, "format": "table"}]
+    }
+  ],
+  "schemaVersion": 38,
+  "version": 1
+}

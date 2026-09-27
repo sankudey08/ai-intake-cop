@@ -1,0 +1,108 @@
+version: "3.9"
+
+services:
+  # ─── Local LLM ────────────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: intake-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # On first run: docker exec intake-ollama ollama pull llama3.2:1b
+
+  # ─── Helicone (self-hosted, optional) ─────────────────────────────────────
+  helicone:
+    image: helicone/helicone:latest
+    container_name: intake-helicone
+    ports:
+      - "8585:8585"
+    environment:
+      - DATABASE_URL=postgresql://helicone:helicone@helicone-db:5432/helicone
+    depends_on:
+      - helicone-db
+    restart: unless-stopped
+
+  helicone-db:
+    image: postgres:15-alpine
+    container_name: intake-helicone-db
+    environment:
+      POSTGRES_USER: helicone
+      POSTGRES_PASSWORD: helicone
+      POSTGRES_DB: helicone
+    volumes:
+      - helicone_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # ─── FastAPI Backend ───────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: intake-api
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - HELICONE_BASE_URL=http://helicone:8585/v1
+    volumes:
+      - ./02-fastapi-triggers:/app/triggers
+      - ./03-background-tasks:/app/background
+      - ./04-budget-alerts:/app/alerts
+      - ./01-guardrails:/app/guardrails
+    depends_on:
+      - ollama
+      - helicone
+      - redis
+    restart: unless-stopped
+
+  # ─── Redis (background task queue) ────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: intake-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # ─── React Dashboard ───────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: ./05-react-dashboard
+      dockerfile: Dockerfile
+    container_name: intake-dashboard
+    ports:
+      - "5173:5173"
+    env_file: .env
+    restart: unless-stopped
+
+  # ─── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: intake-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./06-grafana/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+  # ─── Grafana ───────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: intake-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin123}
+    volumes:
+      - ./06-grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  helicone_db_data:
+  grafana_data:
